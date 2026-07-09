@@ -2,7 +2,7 @@
 USE CATALOG `bright-tv`;
 USE SCHEMA brighttvdata;
 
-SELECT *
+SELECT * 
 FROM bright_tv_userprofile
  LIMIT 100;
  
@@ -16,6 +16,10 @@ SELECT DISTINCT
         WHEN Gender IS NULL THEN 'unknown'
         ELSE Gender
     END AS Sex
+FROM bright_tv_userprofile;
+
+SELECT DISTINCT
+    CONCAT('[', Gender, ']') AS Gender_Value
 FROM bright_tv_userprofile;
 --------------------------------------------------
 -- Checking why my first query did not apply.
@@ -114,4 +118,61 @@ SELECT
 FROM `bright-tv`.brighttvdata.bright_tv_userprofile
 GROUP BY UserID
 HAVING COUNT(*) > 1;
+-----------------------------------------------------------------------
+--- Data Types
+----------------------------------
+----- int (integer) is a number without a decimal (0787372565)
+--- str(string/objects) is a combination of character (a-z, 0-9,/,>.)
+----DateTime, Timestamp,-its a Date
+------------------------------------------------------------------------------
+-- Date Check---------------Helps manipulate the date columns
+SELECT
+    RecordDate2,
+    TO_DATE(RecordDate2) AS watch_date
+FROM `bright-tv`.brighttvdata.bright_tv_viewership;
 
+SELECT
+    UserID0,
+    RecordDate2,
+    TO_DATE(RecordDate2) AS watch_date,          -- Converts a string into a date
+    DAYNAME(TO_DATE(RecordDate2)) AS day_name,   -- Extracts the day name
+    MONTHNAME(TO_DATE(RecordDate2)) AS month_name, -- Extracts the month name
+    YEAR(TO_DATE(RecordDate2)) AS event_year,    -- Extracts the year
+    DAY(TO_DATE(RecordDate2)) AS event_day       -- Extracts the day of the month
+FROM `bright-tv`.brighttvdata.bright_tv_viewership;
+
+
+SELECT
+    COUNT(DISTINCT UserID0) AS number_of_subs,
+    RecordDate2,
+    TO_DATE(RecordDate2) AS watch_date,
+    DAYNAME(TO_DATE(RecordDate2)) AS day_name,
+
+    CASE
+        WHEN DAYNAME(TO_DATE(RecordDate2)) IN ('Saturday', 'Sunday')
+            THEN '02. Weekend'
+        ELSE '01. Weekday'
+    END AS Day_Classification,
+
+    MONTHNAME(TO_DATE(RecordDate2)) AS month_name,
+    YEAR(TO_DATE(RecordDate2)) AS event_year,
+    DAY(TO_DATE(RecordDate2)) AS event_day
+
+FROM bright_tv_viewership
+
+WHERE UserID0 IS NOT NULL
+
+GROUP BY
+    RecordDate2,
+    TO_DATE(RecordDate2),
+    DAYNAME(TO_DATE(RecordDate2)),
+    CASE
+        WHEN DAYNAME(TO_DATE(RecordDate2)) IN ('Saturday', 'Sunday')
+            THEN '02. Weekend'
+        ELSE '01. Weekday'
+    END,
+    MONTHNAME(TO_DATE(RecordDate2)),
+    YEAR(TO_DATE(RecordDate2)),
+    DAY(TO_DATE(RecordDate2))
+
+ORDER BY watch_date;
