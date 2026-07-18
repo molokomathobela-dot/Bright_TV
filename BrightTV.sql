@@ -164,7 +164,7 @@ SELECT
     MONTHNAME(TO_DATE(RecordDate2)) AS month_name, -- Extracts the month name
     YEAR(TO_DATE(RecordDate2)) AS event_year,    -- Extracts the year
     DAY(TO_DATE(RecordDate2)) AS event_day       -- Extracts the day of the month
-FROM bright_tv_userprofile;
+FROM bright_tv_viewership;
 
 
 SELECT
@@ -211,8 +211,6 @@ SELECT *
 FROM`bright-tv`.brighttvdata.bright_tv_viewership
 WHERE USerID0 IS NULL OR
       userid4 IS NULL;
-GROUP BY UserID
-HAVING COUNT(*) > 1;
 -------------------------------------------------------------------------
 
 -------------------------------------------------------------------------
@@ -381,7 +379,9 @@ SELECT
         ELSE 0
     END AS social_media_flag
 FROM bright_tv_userprofile;
+---------------------------------------------------------------------------
 
+----Going to viewership
 -----------------------------------------------------------------------
 --- Data Types
 ----------------------------------
@@ -611,5 +611,46 @@ Channel2,
     WHERE UserID0 IS NOT NULL
     GROUP BY Channel2
     ORDER BY Unique_Viewers DESC;
+-------------------------------------------------------------------------
+---Post running all the codes againg and understanding the - I decided to run the full viewership cleaning code
+------Note all NULL codes are deleted cause we are applying a fully cleaned code------
+  -----------------------------------------------------------------------
+SELECT
+    COALESCE(UserID0, UserID4) AS UserID,
+    RecordDate2,
+    TO_DATE(RecordDate2) AS Watch_Date,
+    DAYNAME(TO_DATE(RecordDate2)) AS Day_Name,
+    CASE
+        WHEN DAYNAME(TO_DATE(RecordDate2)) IN ('Saturday','Sunday') THEN '02. Weekend'
+        ELSE '01. Weekday'
+        END AS Day_Classification,
+        DAY(TO_DATE(RecordDate2)) AS Day_Number,
+        MONTH(TO_DATE(RecordDate2)) AS Month_Number,
+        MONTHNAME(TO_DATE(RecordDate2)) AS Month_Name,
+        YEAR(TO_DATE(RecordDate2)) AS Event_Year,
+        DATE_FORMAT(RecordDate2,'HH:mm:ss') AS Watch_Time,
+    CASE
+        WHEN DATE_FORMAT(RecordDate2,'HH:mm:ss') BETWEEN '00:00:00' AND '05:59:59' THEN '01. Midnight'
+        WHEN DATE_FORMAT(RecordDate2,'HH:mm:ss') BETWEEN '06:00:00' AND '11:59:59' THEN '02. Morning'
+        WHEN DATE_FORMAT(RecordDate2,'HH:mm:ss') BETWEEN '12:00:00' AND '16:59:59' THEN '03. Afternoon'
+        ELSE '04. Evening'
+        END AS Time_Of_Day,
+        `Duration 2` AS Duration,
+        DATE_FORMAT(`Duration 2`,'HH:mm:ss') AS Viewing_Duration,
+    CASE
+        WHEN DATE_FORMAT(`Duration 2`,'HH:mm:ss') BETWEEN '00:05:00' AND '00:30:00' THEN '01. Low Usage: <30 min'
+        WHEN DATE_FORMAT(`Duration 2`,'HH:mm:ss') BETWEEN '00:30:01' AND '00:59:59' THEN '02. Medium Usage: 30-60 min'
+        WHEN DATE_FORMAT(`Duration 2`,'HH:mm:ss') > '00:59:59' THEN '03. High Usage: >60 min'
+        ELSE '04. No Usage'
+        END AS Screen_Time_Bucket,
+        HOUR(RecordDate2) AS Hour_Of_Day,
+        Channel2,
+    CASE
+        WHEN Channel2 IN ('SawSee','Sawsee') THEN 'SawSee'
+        WHEN Channel2 IN ('SuperSport Live Events','Live on SuperSport','Supersport Live Events','DStv Events 1') THEN 'Live Events'
+        ELSE Channel2
+        END AS TV_Channel
+        FROM bright_tv_viewership
+        WHERE UserID0 IS NOT NULL;
 
 
