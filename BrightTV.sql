@@ -652,5 +652,238 @@ SELECT
         END AS TV_Channel
         FROM bright_tv_viewership
         WHERE UserID0 IS NOT NULL;
+-------------------------------------------------------------------------------------------------
+-- FINAL CLEANED DATASET & JOIN
+-- PFinal Version/Import ready
+--------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+USE CATALOG `bright-tv`;
+USE SCHEMA brighttvdata;
 
+WITH user_profiles AS (
 
+    SELECT
+        UserID,
+
+        CASE
+            WHEN Gender = 'None' THEN 'unknown'
+            WHEN Gender = ' ' THEN 'unknown'
+            ELSE Gender
+        END AS Sex,
+
+        CASE
+            WHEN Age = 0 THEN 'Infant'
+            WHEN Age BETWEEN 1 AND 12 THEN 'Kids'
+            WHEN Age BETWEEN 13 AND 17 THEN 'Youth'
+            WHEN Age BETWEEN 18 AND 35 THEN 'Young Adult'
+            WHEN Age BETWEEN 36 AND 50 THEN 'Adults'
+            WHEN Age > 50 AND Age <= 60 THEN 'Elder'
+            ELSE 'Senior'
+        END AS Age_Group,
+
+        CASE
+            WHEN Province = 'None' THEN 'unknown'
+            WHEN Province = ' ' THEN 'unknown'
+            ELSE Province
+        END AS Location,
+
+        CASE
+            WHEN Race = 'other' THEN 'unknown'
+            WHEN Race = 'None' THEN 'unknown'
+            WHEN Race = ' ' THEN 'unknown'
+            WHEN Race IS NULL THEN 'unknown'
+            ELSE Race
+        END AS ethnicity,
+
+        CASE
+            WHEN (Email IS NOT NULL)
+                 OR (Email <> '')
+                 OR (`Social Media Handle` NOT IN ('None', 'other'))
+            THEN 1
+            ELSE 0
+        END AS email_flag,
+
+        CASE
+            WHEN (`Social Media Handle` IS NOT NULL)
+                 OR (`Social Media Handle` <> '')
+                 OR (`Social Media Handle` NOT IN ('None', 'other'))
+            THEN 1
+            ELSE 0
+        END AS social_media_flag
+
+    FROM bright_tv_userprofile
+),
+
+viewership_base AS (
+
+    SELECT
+
+        COALESCE(UserID0, UserID4) AS UserID,
+
+        RecordDate2,
+
+        TO_DATE(RecordDate2) AS Watch_Date,
+
+        DATE_FORMAT(RecordDate2, 'yyyyMM') AS Month_ID,
+
+        DAYNAME(TO_DATE(RecordDate2)) AS Day_Name,
+
+        CASE
+            WHEN DAYNAME(TO_DATE(RecordDate2))
+                 IN ('Saturday', 'Sunday')
+            THEN '02. Weekend'
+            ELSE '01. Weekday'
+        END AS Day_Classification,
+
+        DAY(TO_DATE(RecordDate2)) AS Day_Number,
+
+        MONTH(TO_DATE(RecordDate2)) AS Month_Number,
+
+        MONTHNAME(TO_DATE(RecordDate2)) AS Month_Name,
+
+        YEAR(TO_DATE(RecordDate2)) AS Event_Year,
+
+        DATE_FORMAT(RecordDate2, 'HH:mm:ss') AS Watch_Time,
+
+        CASE
+            WHEN DATE_FORMAT(RecordDate2, 'HH:mm:ss')
+                 BETWEEN '00:00:00' AND '05:59:59'
+                THEN '01. Midnight'
+
+            WHEN DATE_FORMAT(RecordDate2, 'HH:mm:ss')
+                 BETWEEN '06:00:00' AND '11:59:59'
+                THEN '02. Morning'
+
+            WHEN DATE_FORMAT(RecordDate2, 'HH:mm:ss')
+                 BETWEEN '12:00:00' AND '16:59:59'
+                THEN '03. Afternoon'
+
+            ELSE '04. Evening'
+        END AS Time_Of_Day,
+
+        `Duration 2` AS Duration,
+
+        DATE_FORMAT(`Duration 2`, 'HH:mm:ss') AS Viewing_Duration,
+
+        CASE
+            WHEN DATE_FORMAT(`Duration 2`, 'HH:mm:ss')
+                 BETWEEN '00:05:00' AND '00:30:00'
+                THEN '01. Low Usage: <30 min'
+
+            WHEN DATE_FORMAT(`Duration 2`, 'HH:mm:ss')
+                 BETWEEN '00:30:01' AND '00:59:59'
+                THEN '02. Medium Usage: 30-60 min'
+
+            WHEN DATE_FORMAT(`Duration 2`, 'HH:mm:ss')
+                 > '00:59:59'
+                THEN '03. High Usage: >60 min'
+
+            ELSE '04. No Usage'
+        END AS Screen_Time_Bucket,
+
+        HOUR(RecordDate2) AS Hour_Of_Day,
+
+        Channel2,
+
+        CASE
+            WHEN Channel2 IN ('SawSee', 'Sawsee')
+                THEN 'SawSee'
+
+            WHEN Channel2 IN (
+                'SuperSport Live Events',
+                'Live on SuperSport',
+                'Supersport Live Events',
+                'DStv Events 1'
+            )
+                THEN 'Live Events'
+
+            ELSE Channel2
+        END AS TV_Channel
+
+    FROM bright_tv_viewership
+
+    WHERE UserID0 IS NOT NULL
+),
+
+viewership AS (
+
+    SELECT
+        *,
+
+        CASE
+            WHEN ROW_NUMBER() OVER (
+                PARTITION BY UserID, Month_ID
+                ORDER BY RecordDate2
+            ) = 1
+            THEN 1
+            ELSE 0
+        END AS subs
+
+    FROM viewership_base
+)
+
+SELECT
+
+    V.UserID,
+
+    V.subs,
+
+    V.RecordDate2,
+
+    V.Watch_Date,
+
+    V.Month_ID,
+
+    V.Month_Number,
+
+    V.Month_Name,
+
+    V.Day_Name,
+
+    V.Day_Classification,
+
+    V.Day_Number,
+
+    V.Event_Year,
+
+    V.Watch_Time,
+
+    V.Time_Of_Day,
+
+    V.Duration,
+
+    V.Viewing_Duration,
+
+    V.Screen_Time_Bucket,
+
+    V.Hour_Of_Day,
+
+    V.Channel2,
+
+    V.TV_Channel,
+
+    U.Sex,
+
+    U.Age_Group,
+
+    U.Location,
+
+    U.ethnicity,
+
+    U.email_flag,
+
+    U.social_media_flag
+
+FROM viewership AS V
+
+LEFT JOIN user_profiles AS U
+    ON V.UserID = U.UserID;
+ -------------------------------------------------------------------------------------------------
+-- FINAL CLEANED DATASET & JOIN
+-- PFinal Version/Import ready --- As per class
+--------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+
+  
+
+ 
